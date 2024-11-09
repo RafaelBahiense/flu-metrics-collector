@@ -2,19 +2,22 @@
 #include "Config.h"
 #include <Arduino.h>
 
-#define REPORTING_PERIOD_MS 1000
-
 Sensors::Sensors() : oneWire(ONE_WIRE_BUS), tempSensor(&oneWire) {}
 
-void Sensors::begin() {
+int Sensors::begin() {
   tempSensor.begin();
   Serial.print("Initializing pulse oximeter...");
   if (!pox.begin()) {
     Serial.println("FAILED");
+    return 1;
   } else {
     Serial.println("SUCCESS");
+    return 0;
   }
+  pox.setOnBeatDetectedCallback(Sensors::onBeatDetected);
 }
+
+void Sensors::onBeatDetected() { Serial.println("Beat!"); }
 
 float Sensors::getTemperature() {
   tempSensor.requestTemperatures();

@@ -4,13 +4,39 @@
 
 void UserInterface::begin() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-  pinMode(LED_WIFI, OUTPUT);
-  pinMode(LED_SENSORS, OUTPUT);
-  pinMode(LED_SENDING, OUTPUT);
+
+  if (!OLED.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("OLED initialization failed");
+    for (;;)
+      ;
+  }
+  OLED.clearDisplay();
+  OLED.setTextSize(1);
+  OLED.setTextColor(SSD1306_WHITE);
+  OLED.setCursor(0, 0);
+  OLED.display();
 }
 
 bool UserInterface::isButtonPressed() { return digitalRead(BUTTON_PIN) == LOW; }
 
-void UserInterface::setLED(int ledPin, bool state) {
-  digitalWrite(ledPin, state ? HIGH : LOW);
+void UserInterface::displayOximeterReadings(float heartRate, float spO2) {
+  OLED.clearDisplay();
+  OLED.setCursor(0, 0);
+  OLED.printf("HR: %.0f bpm\n", heartRate);
+  OLED.printf("SpO2: %.0f%%", spO2);
+  OLED.display();
+}
+
+void UserInterface::displayTemperature(float temperature) {
+  OLED.clearDisplay();
+  OLED.setCursor(0, 0);
+  OLED.printf("Temp: %.2f C", temperature);
+  OLED.display();
+}
+
+void UserInterface::displayMessage(const char *message) {
+  OLED.clearDisplay();
+  OLED.setCursor(0, 0);
+  OLED.print(message);
+  OLED.display();
 }

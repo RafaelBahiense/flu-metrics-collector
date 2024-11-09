@@ -4,10 +4,12 @@
 #include <DallasTemperature.h>
 #include <OneWire.h>
 
+#define REPORTING_PERIOD_MS 100
+
 class Sensors {
 public:
   Sensors();
-  void begin();
+  int begin();
   float getTemperature();
   void updateOximeter();
   float getHeartRate();
@@ -17,4 +19,6 @@ private:
   OneWire oneWire;
   DallasTemperature tempSensor;
   PulseOximeter pox;
+
+  static void onBeatDetected();
 };
