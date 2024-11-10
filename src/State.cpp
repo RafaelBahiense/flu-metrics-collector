@@ -76,3 +76,19 @@ void State::setSpO2(float value) { spO2 = value; }
 float State::getTemperature() const { return temperature; }
 
 void State::setTemperature(float value) { temperature = value; }
+
+void State::setError(const char *message) { errorMessage = message; }
+
+void State::clearError() { errorMessage = nullptr; }
+
+const char *State::getError() const { return errorMessage; }
+
+unsigned long State::getThanksMessageStartTime() const {
+  return thanksMessageStartTime;
+}
+
+void State::setThanksMessageStartTime(unsigned long value) {
+  thanksMessageStartTime = value;
+}
+
+void State::clearThanksMessageStartTime() { thanksMessageStartTime = 0; }

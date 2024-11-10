@@ -58,6 +58,14 @@ public:
   float getTemperature() const;
   void setTemperature(float value);
 
+  void setError(const char *message);
+  void clearError();
+  const char *getError() const;
+
+  unsigned long getThanksMessageStartTime() const;
+  void setThanksMessageStartTime(unsigned long value);
+  void clearThanksMessageStartTime();
+
 private:
   DeviceState currentState;
 
@@ -76,4 +84,8 @@ private:
   float heartRate;
   float spO2;
   float temperature;
+
+  const char *errorMessage;
+
+  unsigned long thanksMessageStartTime;
 };

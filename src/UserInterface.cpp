@@ -50,9 +50,9 @@ void UserInterface::displayOximeterReadings(float heartRate, float spO2) {
 void UserInterface::displayOximeterReadingsMedium(float heartRate, float spO2) {
   OLED.clearDisplay();
   OLED.setCursor(0, 0);
-  OLED.printf("Média HR: %.0f bpm\n", heartRate);
-  OLED.printf("Média SpO2: %.0f%%", spO2);
-  OLED.printf("Pressione Botão para continuar");
+  OLED.printf("Media HR: %.0f bpm\n", heartRate);
+  OLED.printf("Media SpO2: %.0f%%\n", spO2);
+  OLED.printf("Pressione Botao para continuar");
   OLED.display();
 }
 
@@ -60,6 +60,14 @@ void UserInterface::displayTemperature(float temperature) {
   OLED.clearDisplay();
   OLED.setCursor(0, 0);
   OLED.printf("Temp: %.2f C", temperature);
+  OLED.display();
+}
+
+void UserInterface::displayTemperatureMedium(float temperature) {
+  OLED.clearDisplay();
+  OLED.setCursor(0, 0);
+  OLED.printf("Media Temp: %.2f C\n", temperature);
+  OLED.printf("Pressione Botao para continuar");
   OLED.display();
 }
 

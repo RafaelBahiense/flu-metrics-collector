@@ -29,14 +29,12 @@ void setup() {
 
 void loop() {
   sensors.updateOximeter();
-  static unsigned long lastOxiUpdateTime = 0;
   const unsigned long oximeterInterval = 20000;
-  static unsigned long lastTempUpdateTime = 0;
   const unsigned long tempInterval = 20000;
 
   switch (deviceState.getCurrentState()) {
   case State::Idle: {
-    ui.displayMessage("Pressione o Botão para Iniciar");
+    ui.displayMessage("Pressione o Botao para Iniciar");
     if (ui.isButtonPressed()) {
       deviceState.setCollectingOximeter(true);
       deviceState.setOximeterStartTime(millis());
@@ -63,8 +61,6 @@ void loop() {
       }
 
       ui.displayOximeterReadings(hr, spo2);
-
-      lastOxiUpdateTime = millis();
     }
 
     if (millis() - deviceState.getOximeterStartTime() > oximeterInterval) {
@@ -80,15 +76,16 @@ void loop() {
         deviceState.setHeartRate(heartRateAvg);
         deviceState.setSpO2(spO2Avg);
 
-        Serial.printf("Média HR: %.2f bpm\n", deviceState.getHeartRate());
-        Serial.printf("Média SpO2: %.2f %%\n", deviceState.getSpO2());
+        Serial.printf("Average HR: %.2f bpm\n", deviceState.getHeartRate());
+        Serial.printf("Average SpO2: %.2f %%\n", deviceState.getSpO2());
 
         deviceState.setCollectingOximeter(false);
       }
 
       if (deviceState.getReadings() == 0) {
-        ui.displayMessage("Erro ao Coletar Dados. Pressione Botão para tentar "
-                          "novamente");
+        ui.displayMessage(
+            "Erro ao Coletar Dados.\nPressione o botao para tentar "
+            "novamente");
         if (ui.isButtonPressed()) {
           deviceState.setCurrentState(State::CollectingOximeter);
           deviceState.resetHeartRateSum();
@@ -102,6 +99,9 @@ void loop() {
                                          deviceState.getSpO2());
         if (ui.isButtonPressed()) {
           deviceState.setCurrentState(State::CollectingTemperature);
+          deviceState.setCollectingTemperature(true);
+          deviceState.resetTemperatureSum();
+          deviceState.resetTempReadings();
           deviceState.setTemperatureStartTime(millis());
         }
       }
@@ -110,39 +110,61 @@ void loop() {
   }
 
   case State::CollectingTemperature: {
-    if (millis() - lastTempUpdateTime >= tempInterval) {
+    if (millis() - deviceState.getTemperatureStartTime() < tempInterval) {
       float tempC = sensors.getTemperature();
-      deviceState.addTemperature(tempC);
-      deviceState.incrementTempReadings();
+
+      if (tempC > 0) {
+        deviceState.addTemperature(tempC);
+        deviceState.incrementTempReadings();
+      }
 
       Serial.printf("Temperature Reading: %.2f °C\n", tempC);
       ui.displayTemperature(tempC);
-
-      lastTempUpdateTime = millis();
     }
 
-    if (millis() - deviceState.getTemperatureStartTime() >= 10000) {
-      deviceState.setCollectingTemperature(false);
+    if (millis() - deviceState.getTemperatureStartTime() > tempInterval) {
+      if (deviceState.isCollectingTemperature()) {
+        int tempReadings = deviceState.getTempReadings();
+        float tempAvg = (tempReadings > 0)
+                            ? deviceState.getTemperatureSum() / tempReadings
+                            : 0;
 
-      int tempReadings = deviceState.getTempReadings();
-      float tempAvg = (tempReadings > 0)
-                          ? deviceState.getTemperatureSum() / tempReadings
-                          : 0;
+        deviceState.setTemperature(tempAvg);
 
-      deviceState.setTemperature(tempAvg);
+        Serial.printf("Average Temperature: %.2f °C\n",
+                      deviceState.getTemperature());
+        deviceState.setCollectingTemperature(false);
+      }
 
-      Serial.printf("Average Temperature: %.2f °C\n",
-                    deviceState.getTemperature());
-      ui.displayTemperature(deviceState.getTemperature());
+      if (deviceState.getTempReadings() == 0) {
+        ui.displayMessage(
+            "Erro ao Coletar Dados.\nPressione o botao para tentar "
+            "novamente");
+        if (ui.isButtonPressed()) {
+          deviceState.setCurrentState(State::CollectingTemperature);
+          deviceState.resetTemperatureSum();
+          deviceState.resetTempReadings();
+          deviceState.setCollectingTemperature(true);
+          deviceState.setTemperatureStartTime(millis());
+        }
+      } else {
+        ui.displayTemperatureMedium(deviceState.getTemperature());
 
-      deviceState.setCurrentState(State::SendingData);
+        if (ui.isButtonPressed()) {
+          deviceState.setCurrentState(State::SendingData);
+          deviceState.resetTempReadings();
+          deviceState.resetTemperatureSum();
+        }
+      }
     }
     break;
   }
 
   case State::SendingData: {
     String jsonData = "{";
-    jsonData += "\"temperature\":";
+    jsonData += "\"device_id\":\"";
+    jsonData += "prototype\"";
+    jsonData += ",\"temperature\":";
     jsonData += deviceState.getTemperature();
     jsonData += ",\"heart_rate\":";
     jsonData += deviceState.getHeartRate();
@@ -157,28 +179,40 @@ void loop() {
         Serial.println("Dados enviados com sucesso");
         ui.displayMessage("Dados Enviados com Sucesso");
         deviceState.setCurrentState(State::DisplayResult);
+        deviceState.resetReadings();
+        deviceState.resetHeartRateSum();
+        deviceState.resetSpO2Sum();
+        deviceState.resetTemperatureSum();
+        deviceState.resetTempReadings();
+        deviceState.setThanksMessageStartTime(millis());
       } else {
-        Serial.println("Falha ao enviar dados");
-        ui.displayMessage("Falha ao Enviar Dados");
+        deviceState.setError("Erro ao Enviar Dados\nPressione o botao para "
+                             "tentar novamente");
         deviceState.setCurrentState(State::Error);
       }
     } else {
-      Serial.println("Wi-Fi não conectado");
-      ui.displayMessage("Wi-Fi não Conectado");
+      deviceState.setError("Wi-Fi nao conectado\nPressione o botao para "
+                           "tentar novamente");
       deviceState.setCurrentState(State::Error);
     }
     break;
   }
 
   case State::DisplayResult: {
-    ui.displayMessage("Pressione Botão para Iniciar");
-    deviceState.setCurrentState(State::Idle);
-    break;
+    ui.displayMessage("Dados Enviados com\n Sucesso! Obrigado!");
+    if (millis() - deviceState.getThanksMessageStartTime() > 5000) {
+      deviceState.setCurrentState(State::Idle);
+      deviceState.clearThanksMessageStartTime();
+    }
   }
 
   case State::Error: {
-    ui.displayMessage("Pressione Botão para Iniciar");
-    deviceState.setCurrentState(State::Idle);
+    ui.displayMessage(deviceState.getError());
+    Serial.println(deviceState.getError());
+    if (ui.isButtonPressed()) {
+      deviceState.setCurrentState(State::Idle);
+      deviceState.clearError();
+    }
     break;
   }
 
