@@ -17,13 +17,42 @@ void UserInterface::begin() {
   OLED.display();
 }
 
-bool UserInterface::isButtonPressed() { return digitalRead(BUTTON_PIN) == LOW; }
+bool UserInterface::isButtonPressed() {
+  int reading = digitalRead(BUTTON_PIN);
+
+  if (reading != lastButtonState) {
+    lastDebounceTime = millis();
+  }
+
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (reading != buttonState) {
+      buttonState = reading;
+
+      if (buttonState == LOW) {
+        lastButtonState = reading;
+        return true;
+      }
+    }
+  }
+
+  lastButtonState = reading;
+  return false;
+}
 
 void UserInterface::displayOximeterReadings(float heartRate, float spO2) {
   OLED.clearDisplay();
   OLED.setCursor(0, 0);
   OLED.printf("HR: %.0f bpm\n", heartRate);
   OLED.printf("SpO2: %.0f%%", spO2);
+  OLED.display();
+}
+
+void UserInterface::displayOximeterReadingsMedium(float heartRate, float spO2) {
+  OLED.clearDisplay();
+  OLED.setCursor(0, 0);
+  OLED.printf("Média HR: %.0f bpm\n", heartRate);
+  OLED.printf("Média SpO2: %.0f%%", spO2);
+  OLED.printf("Pressione Botão para continuar");
   OLED.display();
 }
 
@@ -43,7 +72,8 @@ void UserInterface::displayMessage(const char *message) {
 
 void UserInterface::displayAllInfos(float heartRate, float spO2,
                                     float temperature, String ssid,
-                                    String localIp, int rssi) {
+                                    String localIp, int rssi,
+                                    bool isButtonPressed) {
   OLED.clearDisplay();
   OLED.setCursor(0, 0);
   OLED.printf("HR: %.0f bpm\n", heartRate);
@@ -51,5 +81,6 @@ void UserInterface::displayAllInfos(float heartRate, float spO2,
   OLED.printf("Temp: %.2f C", temperature);
   OLED.printf("SSID: %s, RSSI: %d", ssid.c_str(), rssi);
   OLED.printf("IP: %s", localIp.c_str());
+  OLED.printf("Button: %s", isButtonPressed ? "Pressed" : "Not Pressed");
   OLED.display();
 }

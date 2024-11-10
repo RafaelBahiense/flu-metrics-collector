@@ -24,20 +24,20 @@ void setup() {
   sensors.begin();
   ui.displayMessage("Sensores Iniciados");
 
-  deviceState.setCurrentState(State::Debug);
-  ui.displayMessage("Pressione o Botão para Iniciar");
+  deviceState.setCurrentState(State::Idle);
 }
 
 void loop() {
+  sensors.updateOximeter();
   static unsigned long lastOxiUpdateTime = 0;
-  const unsigned long oximeterInterval = 10000;
+  const unsigned long oximeterInterval = 20000;
   static unsigned long lastTempUpdateTime = 0;
-  const unsigned long tempInterval = 5000;
+  const unsigned long tempInterval = 20000;
 
   switch (deviceState.getCurrentState()) {
   case State::Idle: {
+    ui.displayMessage("Pressione o Botão para Iniciar");
     if (ui.isButtonPressed()) {
-
       deviceState.setCollectingOximeter(true);
       deviceState.setOximeterStartTime(millis());
       deviceState.resetHeartRateSum();
@@ -45,57 +45,66 @@ void loop() {
       deviceState.resetReadings();
 
       deviceState.setCurrentState(State::CollectingOximeter);
-
-      while (ui.isButtonPressed()) {
-        delay(10);
-      }
     }
     break;
   }
 
   case State::CollectingOximeter: {
-    sensors.updateOximeter();
-    if (millis() - lastOxiUpdateTime > oximeterInterval) {
+    if (millis() - deviceState.getOximeterStartTime() < oximeterInterval) {
       float hr = sensors.getHeartRate();
       float spo2 = sensors.getSpO2();
       Serial.printf("HR: %.2f bpm\n", hr);
       Serial.printf("SpO2: %.2f %%\n", spo2);
 
-      ui.displayOximeterReadings(hr, spo2);
       if (hr > 0 && spo2 > 0) {
         deviceState.addHeartRate(hr);
         deviceState.addSpO2(spo2);
         deviceState.incrementReadings();
-
-        ui.displayOximeterReadings(hr, spo2);
-      } else {
-        ui.displayOximeterReadings(deviceState.getHeartRate(),
-                                   deviceState.getSpO2());
       }
+
+      ui.displayOximeterReadings(hr, spo2);
 
       lastOxiUpdateTime = millis();
     }
 
-    if (millis() - deviceState.getOximeterStartTime() >= 10000) {
-      deviceState.setCollectingOximeter(false);
+    if (millis() - deviceState.getOximeterStartTime() > oximeterInterval) {
 
-      int readings = deviceState.getReadings();
-      float heartRateAvg =
-          (readings > 0) ? deviceState.getHeartRateSum() / readings : 0;
-      float spO2Avg = (readings > 0) ? deviceState.getSpO2Sum() / readings : 0;
+      if (deviceState.isCollectingOximeter()) {
 
-      deviceState.setHeartRate(heartRateAvg);
-      deviceState.setSpO2(spO2Avg);
+        int readings = deviceState.getReadings();
+        float heartRateAvg =
+            (readings > 0) ? deviceState.getHeartRateSum() / readings : 0;
+        float spO2Avg =
+            (readings > 0) ? deviceState.getSpO2Sum() / readings : 0;
 
-      Serial.printf("Média HR: %.2f bpm\n", deviceState.getHeartRate());
-      Serial.printf("Média SpO2: %.2f %%\n", deviceState.getSpO2());
+        deviceState.setHeartRate(heartRateAvg);
+        deviceState.setSpO2(spO2Avg);
 
-      ui.displayOximeterReadings(deviceState.getHeartRate(),
-                                 deviceState.getSpO2());
+        Serial.printf("Média HR: %.2f bpm\n", deviceState.getHeartRate());
+        Serial.printf("Média SpO2: %.2f %%\n", deviceState.getSpO2());
 
-      // ui.displayMessage("Colete a Temperatura...");
-      // deviceState.setCurrentState(State::CollectingTemperature);
-      // deviceState.setTemperatureStartTime(millis());
+        deviceState.setCollectingOximeter(false);
+      }
+
+      if (deviceState.getReadings() == 0) {
+        ui.displayMessage("Erro ao Coletar Dados. Pressione Botão para tentar "
+                          "novamente");
+        if (ui.isButtonPressed()) {
+          deviceState.setCurrentState(State::CollectingOximeter);
+          deviceState.resetHeartRateSum();
+          deviceState.resetSpO2Sum();
+          deviceState.resetReadings();
+          deviceState.setCollectingOximeter(true);
+          deviceState.setOximeterStartTime(millis());
+        }
+      } else {
+        ui.displayOximeterReadingsMedium(deviceState.getHeartRate(),
+                                         deviceState.getSpO2());
+        if (ui.isButtonPressed()) {
+          deviceState.setCurrentState(State::CollectingTemperature);
+          deviceState.setTemperatureStartTime(millis());
+        }
+      }
     }
     break;
   }
@@ -174,14 +183,14 @@ void loop() {
   }
 
   case State::Debug: {
-    sensors.updateOximeter();
     float hr = sensors.getHeartRate();
     float spo2 = sensors.getSpO2();
     float temp = sensors.getTemperature();
     auto wifiInfo = wifiManager.getWifiInfos();
+    int buttonState = ui.isButtonPressed();
 
     ui.displayAllInfos(hr, spo2, temp, wifiInfo.ssid, wifiInfo.localIP,
-                       wifiInfo.rssi);
+                       wifiInfo.rssi, buttonState);
     break;
   }
 
