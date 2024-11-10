@@ -24,13 +24,11 @@ void setup() {
   sensors.begin();
   ui.displayMessage("Sensores Iniciados");
 
-  deviceState.setCurrentState(State::Idle);
+  deviceState.setCurrentState(State::Debug);
   ui.displayMessage("Pressione o Botão para Iniciar");
 }
 
 void loop() {
-  sensors.updateOximeter();
-
   static unsigned long lastOxiUpdateTime = 0;
   const unsigned long oximeterInterval = 10000;
   static unsigned long lastTempUpdateTime = 0;
@@ -39,8 +37,6 @@ void loop() {
   switch (deviceState.getCurrentState()) {
   case State::Idle: {
     if (ui.isButtonPressed()) {
-
-      ui.displayMessage("Coletando HR & SpO2...");
 
       deviceState.setCollectingOximeter(true);
       deviceState.setOximeterStartTime(millis());
@@ -58,6 +54,7 @@ void loop() {
   }
 
   case State::CollectingOximeter: {
+    sensors.updateOximeter();
     if (millis() - lastOxiUpdateTime > oximeterInterval) {
       float hr = sensors.getHeartRate();
       float spo2 = sensors.getSpO2();
@@ -173,6 +170,18 @@ void loop() {
   case State::Error: {
     ui.displayMessage("Pressione Botão para Iniciar");
     deviceState.setCurrentState(State::Idle);
+    break;
+  }
+
+  case State::Debug: {
+    sensors.updateOximeter();
+    float hr = sensors.getHeartRate();
+    float spo2 = sensors.getSpO2();
+    float temp = sensors.getTemperature();
+    auto wifiInfo = wifiManager.getWifiInfos();
+
+    ui.displayAllInfos(hr, spo2, temp, wifiInfo.ssid, wifiInfo.localIP,
+                       wifiInfo.rssi);
     break;
   }
 

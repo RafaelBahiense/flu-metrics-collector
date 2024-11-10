@@ -40,3 +40,16 @@ void UserInterface::displayMessage(const char *message) {
   OLED.print(message);
   OLED.display();
 }
+
+void UserInterface::displayAllInfos(float heartRate, float spO2,
+                                    float temperature, String ssid,
+                                    String localIp, int rssi) {
+  OLED.clearDisplay();
+  OLED.setCursor(0, 0);
+  OLED.printf("HR: %.0f bpm\n", heartRate);
+  OLED.printf("SpO2: %.0f%%", spO2);
+  OLED.printf("Temp: %.2f C", temperature);
+  OLED.printf("SSID: %s, RSSI: %d", ssid.c_str(), rssi);
+  OLED.printf("IP: %s", localIp.c_str());
+  OLED.display();
+}

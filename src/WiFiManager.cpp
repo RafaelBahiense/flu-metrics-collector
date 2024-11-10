@@ -13,3 +13,11 @@ void WiFiManager::connectToWiFi(const char *ssid, const char *password) {
 }
 
 bool WiFiManager::isConnected() { return WiFi.status() == WL_CONNECTED; }
+
+WifiInfo WiFiManager::getWifiInfos() {
+  WifiInfo wifiInfo;
+  wifiInfo.ssid = WiFi.SSID();
+  wifiInfo.localIP = WiFi.localIP().toString();
+  wifiInfo.rssi = WiFi.RSSI();
+  return wifiInfo;
+}

@@ -2,7 +2,10 @@
 #include "Config.h"
 #include <Arduino.h>
 
-Sensors::Sensors() : oneWire(ONE_WIRE_BUS), tempSensor(&oneWire) {}
+Sensors::Sensors() {
+  oneWire = OneWire(ONE_WIRE_BUS);
+  tempSensor = DallasTemperature(&oneWire);
+}
 
 int Sensors::begin() {
   tempSensor.begin();

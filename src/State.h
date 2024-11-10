@@ -8,7 +8,8 @@ public:
     CollectingTemperature,
     SendingData,
     DisplayResult,
-    Error
+    Error,
+    Debug
   };
 
   State();
