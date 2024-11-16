@@ -163,7 +163,7 @@ void loop() {
   case State::SendingData: {
     String jsonData = "{";
     jsonData += "\"device_id\":\"";
-    jsonData += "prototype\"";
+    jsonData += "apresentacao\"";
     jsonData += ",\"temperature\":";
     jsonData += deviceState.getTemperature();
     jsonData += ",\"heart_rate\":";
